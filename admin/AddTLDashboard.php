@@ -1,0 +1,143 @@
+<?php
+ob_start();
+error_reporting(E_ALL);
+include_once '../common.php';
+$connect = new connect();
+include('IsLogin.php');
+?>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title><?php echo $ProjectName; ?> | Add  TL Dashboard </title>
+        <?php include_once 'include.php'; ?>
+        <link href="<?php echo $web_url; ?>admin/assets/global/plugins/bootstrap-datepicker/css/bootstrap-datepicker.css" rel="stylesheet" type="text/css" />
+        <link href="<?php echo $web_url; ?>admin/assets/global/plugins/bootstrap-datetimepicker/css/bootstrap-datetimepicker.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body class="page-container-bg-solid page-boxed">
+        <?php include_once './header.php'; ?>
+        <div style="display: none; z-index: 10060;" id="loading">
+            <img id="loading-image" src="<?php echo $web_url; ?>admin/images/loader1.gif">
+        </div>
+        <div class="page-container">
+            <div class="page-content-wrapper">
+                <div class="page-content">
+                    <div class="container">
+                        <ul class="page-breadcrumb breadcrumb">
+                            <li>
+                                <a href="<?php echo $web_url; ?>admin/index.php">Home</a>
+                                <i class="fa fa-circle"></i>
+                            </li>
+                            <li>
+                                <a href="<?php echo $web_url; ?>admin/dailyupdate.php">List Of  TL Dashboard </a>
+                                <i class="fa fa-circle"></i>
+                            </li>
+                            <li>
+                                <span>Add TL Dashboard </span>
+                            </li>
+                        </ul>
+                        <div class="page-content-inner">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="portlet light ">
+                                        <div class="portlet-title">
+                                            <div class="caption font-red-sunglo">
+                                                <i class="icon-settings font-red-sunglo"></i>
+                                                <span class="caption-subject bold uppercase"> Add  TL Dashboard </span>
+                                            </div>
+                                        </div>
+                                        <div class="portlet-body form">
+                                            <div class="row">
+                                                <form  role="form"  method="POST"  action="" name="frmparameter"  id="frmparameter" enctype="multipart/form-data">
+                                                    <input type="hidden" value="AddEmployeeTLDashboardData" name="action" id="action">
+                                                    <div class="form-body"> 
+                                                        <div class="form-group col-md-4">
+                                                            <label for="exampleInputFile1">Excel file</label><br />
+                                                            <input type="file"  id="gallery" name="gallery" class="btn red" required=""/>
+                                                            <input type="hidden" name="galeryID" ID="galeryID" />
+                                                        </div>
+                                                        <div id="ImageGallery" style="display:none;">  
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group noborder">
+                                                        <input class="btn blue margin-top-20" type="submit" id="Btnmybtn"  value="Submit" name="submit">      
+                                                        <button type="button" class="btn blue margin-top-20" onClick="checkclose();">Cancel</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <div class="row">
+                                                <h4 style="color : #f03f2a; font-weight: bold" id="errorlog">
+                                                </h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> 
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php include_once './footer.php'; ?>
+        <script src="<?php echo $web_url; ?>admin/assets/global/plugins/bootstrap-datepicker/js/bootstrap-datepicker.js" type="text/javascript"></script>
+        <script type="text/javascript">
+                                                            $(document).ready(function () {
+                                                                $("#date").datepicker({
+                                                                    format: 'dd-mm-yyyy',
+                                                                    autoclose: true,
+                                                                    todayHighlight: true,
+                                                                    defaultDate: "now",
+                                                                });
+                                                            });
+        </script>
+        <script type="text/javascript">
+            function checkclose() {
+                window.location.href = '<?php echo $web_url; ?>admin/Incentive.php';
+            }
+
+            $('#frmparameter').submit(function (e) {
+                e.preventDefault();
+                var $form = $(this);
+                $('#loading').css("display", "block");
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo $web_url; ?>admin/querydataEmployee.php',
+                    data: $('#frmparameter').serialize(),
+                    success: function (response) {
+//                        alert(response);
+
+                        $('#loading').css("display", "none");
+                        $("#Btnmybtn").attr('disabled', 'disabled');
+                        $("#errorlog").html(response);
+//                        window.location.href = '<?php echo $web_url; ?>admin/Incentive.php';
+
+                    }
+                });
+            });
+
+            $(document).ready(function ()
+            {
+                $("#gallery").on('change', function ()
+                {
+                    var galeryID = 0;
+                    galeryID = galeryID + 1;
+                    $("#galeryID").val(galeryID);
+                    $("#ImageGallery").html('<img src="<?php echo $web_url; ?>admin/images/input-spinner.gif" alt="Uploading...."/>');
+                    var formData = new FormData($('form#frmparameter')[0]);
+                    $.ajax({
+                        type: "POST",
+                        url: "uploadExcelTemp.php",
+                        processData: false,
+                        contentType: false,
+                        data: formData,
+                        success: function (msg) {
+                            $("#ImageGallery").show();
+                            $("#ImageGallery").html(msg);
+                        },
+                    });
+                });
+            });
+
+        </script>
+    </body>
+</html>

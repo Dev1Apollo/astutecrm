@@ -1,0 +1,152 @@
+<?php
+ob_start();
+error_reporting(E_ALL);
+include_once '../common.php';
+$connect = new connect();
+include('IsLogin.php');
+?>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title><?php echo $ProjectName; ?> | Archive Data </title>
+        <?php include_once './include.php'; ?>
+    </head>
+    <!-- END HEAD -->
+    <body class="page-header-fixed page-sidebar-closed-hide-logo page-content-white page-md">
+        <div class="page-wrapper">
+            <?php include_once './header.php'; ?>
+            <div style="display: none; z-index: 10060;" id="loading">
+                <img id="loading-image" src="<?php echo $web_url; ?>Employee/images/loader.gif">
+            </div>
+            <!-- END SIDEBAR -->
+            <!-- BEGIN CONTENT -->
+            <div class="page-content-wrapper">
+                <!-- BEGIN CONTENT BODY -->
+                <div class="page-content">
+                    <div class="page-bar">
+                        <ul class="page-breadcrumb">
+                            <li>
+                                <a href="index.php">Home</a>
+                                <i class="fa fa-circle"></i>
+                            </li>
+                            <li>
+                                <span>Archive Data </span>
+                            </li>
+                        </ul>
+                        <div class="page-toolbar">
+                            <div id="dashboard-report-range" class="pull-right tooltips btn btn-sm" data-container="body" data-placement="bottom" data-original-title="Change dashboard date range">
+                                <i class="icon-calendar"></i>&nbsp;
+                                <span class="thin uppercase hidden-xs"></span>&nbsp;
+                                <i class="fa fa-angle-down"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="clearfix"></div>
+                    <!-- END DASHBOARD STATS 1-->
+                    <div class="portlet light " style="" id="SLID">
+                        <div class="portlet-title">
+                            <div class="caption font-red-sunglo">
+                                <span class="caption-subject bold uppercase">List of Archive Data</span>
+                            </div>
+                            <?php if ($_SESSION['Designation'] == 6) { ?>
+                                <a href="<?php echo $web_url; ?>Employee/AddEmployeeIncentive.php" class="btn blue pull-right margin-bottom-20" style="float: right;" title="ADD Employee Incentive"><i class="fa fa-upload"></i> </a>
+                            <?php } ?>
+                        </div>
+                        <div class="portlet-body form">
+                            <form role="form" method="POST" action="" name="frmparameter" id="frmparameter" enctype="multipart/form-data">
+                                <div class="form-body">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group col-md-3">
+                                                <label for="form_control_1">From Date</label>
+                                                <select name="Date" id="Date" class="form-control date-picker"> 
+                                                    <option value="">Select Month</option>
+                                                    <?php
+                                                    $filterPerformance = mysqli_query($dbconn, "select * from application GROUP by DATE_FORMAT(STR_TO_DATE(strEntryDate,'%d-%M-%Y'), '%b-%y') ORDER BY STR_TO_DATE(strEntryDate,'%d-%M-%Y') DESC limit 5");
+                                                    while ($row = mysqli_fetch_array($filterPerformance)) {
+                                                        $monthYear = date('M-y', strtotime($row['strEntryDate']));
+                                                        ?>
+                                                        <option value="<?php echo $row['strEntryDate']; ?>" ><?php echo $monthYear; ?></option>    
+                                                        <?php
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+
+                                            <div class="form-group col-md-3">
+                                                <a href="#" class="btn blue margin-top-20" onclick="PageLoadData(1);">Search</a>
+                                                <button type="button" class="btn blue margin-top-20" onclick="return checkClear();">Clear</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                            <div id="PlaceUsersDataHere">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- END CONTENT BODY -->
+            </div>
+            <!-- END CONTENT -->
+            <!-- BEGIN QUICK SIDEBAR -->
+            <a href="javascript:;" class="page-quick-sidebar-toggler">
+                <i class="icon-login"></i>
+            </a>
+            <!-- END QUICK SIDEBAR -->
+        </div>
+        <!-- END CONTAINER -->
+        <!-- BEGIN FOOTER -->
+        <?php include_once './footer.php'; ?>
+        <!-- END FOOTER -->
+    </div>
+    <!-- BEGIN CORE PLUGINS -->
+    <?php include_once './footerjs.php'; ?>
+    <script type="text/javascript">
+
+        function PageLoadData(Page) {
+            var Date = $('#Date').val();
+//            var EmployeeId = $('#EmployeeId').val();
+            $('#loading').css("display", "block");
+            $.ajax({
+                type: "POST",
+                url: "<?php echo $web_url; ?>Employee/AjaxArchiveData.php",
+                data: {action: 'ListUser', Page: Page, Date: Date},
+                success: function (msg) {
+                    $('#SLID').show();
+                    $('#loading').css("display", "none");
+                    $("#PlaceUsersDataHere").html(msg);
+                },
+            });
+        }// end of filter
+//        PageLoadData(1);
+
+        function deletedata(task, id)
+        {
+
+            var errMsg = '';
+            if (task == 'Delete') {
+                errMsg = 'Are you sure to delete?';
+            }
+            if (confirm(errMsg)) {
+                $('#loading').css("display", "block");
+                $.ajax({
+                    type: "POST",
+                    url: "<?php echo $web_url; ?>Employee/AjaxArchiveData.php",
+                    data: {action: task, ID: id},
+                    success: function (msg) {
+                        //   alert(msg);
+                        $('#loading').css("display", "none");
+                        window.location.href = '';
+
+                        return false;
+                    },
+                });
+            }
+            return false;
+        }
+    </script>
+</body>
+
+</html>
