@@ -16,6 +16,11 @@ if ($_POST['action'] == 'ListUser') {
             $where .= " AND applicationfollowup.mainDispoId = '" . intval($_REQUEST['disposition_name']) . "'";
         }
     }
+    
+    if (isset($_REQUEST['textSearch']) &&  $_REQUEST['textSearch']) {
+        $where.=" and (application.customerName  like '%" . trim($_REQUEST['textSearch']) . "%' OR application.applicatipnNo like '%" . trim($_REQUEST['textSearch']) . "%')";
+    }
+    
     if(isset($_REQUEST['sub_disposition']) && $_REQUEST['sub_disposition'] != ''){
         $where .= " AND applicationfollowup.subDispoId = '" . intval($_REQUEST['sub_disposition']) . "'";
     }

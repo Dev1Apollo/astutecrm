@@ -793,6 +793,9 @@ include('IsLogin.php');
                                             </select>
                                         </div>
                                     </div>
+                                    <div class="form-group col-md-3">
+                                        <input type="type" name="textSearch" id="textSearch" placeholder="Search Cust. Name / Loan No." value="<?= $_REQUEST['textSearch'] ?? ''; ?>" class="form-control"> 
+                                    </div>
                                     <?php
                                         if ($_SESSION['Designation'] == 4 || $_SESSION['Designation'] == 2) {
                                             $filterTeamLeader = mysqli_query($dbconn, "SELECT * FROM `employeedesignation` where iEmployeeId='" . $_SESSION['EmployeeId'] . "' and iDesignationId='4' and istatus='1' and isDelete='0'");
@@ -982,13 +985,14 @@ include('IsLogin.php');
                                             var EmployeeId = $('#EmployeeId').val();
                                             var disposition_name = $('#disposition_name').val();
                                             var sub_disposition = $('#sub_disposition').val();
-
+                                            var textSearch =  $("#textSearch").val();
+                                            
                                             $('#loading').css("display", "block");
                                             $.ajax({
                                                 type: "POST",
                                                 url: "<?php echo $web_url; ?>Employee/AjaxAgentCRM.php",
                                                 //data: {action: 'ListUser', Page: Page, strfilter: strfilter, filterValue: filterValue, EmployeeId: EmployeeId, fromdate: fromdate, todate: todate},
-                                                data: {action: 'ListUser', Page: Page, EmployeeId: EmployeeId, sub_disposition: sub_disposition, disposition_name: disposition_name,sort_field: currentSortField,sort_order: currentSortOrder},
+                                                data: {action: 'ListUser', Page: Page, EmployeeId: EmployeeId, sub_disposition: sub_disposition, disposition_name: disposition_name,sort_field: currentSortField,sort_order: currentSortOrder, textSearch: textSearch},
                                                 success: function (msg) {
                                                     $('#SLID').show();
                                                     $('#loading').css("display", "none");
@@ -1004,7 +1008,8 @@ include('IsLogin.php');
                                             var EmployeeId = $('#EmployeeId').val();
                                             var fromdate = $('#formdate').val();
                                             var todate = $('#todate').val();
-                                            var strURL = 'TLEmployeeCRMExcel.php?strfilter=' + strfilter + '&todate=' + todate + '&fromdate='+ fromdate + '&filterValue=' + filterValue + '&EmployeeId=' + EmployeeId;
+                                            var textSearch =  $("#textSearch").val();
+                                            var strURL = 'TLEmployeeCRMExcel.php?strfilter=' + strfilter + '&todate=' + todate + '&fromdate='+ fromdate + '&filterValue=' + filterValue + '&EmployeeId=' + EmployeeId + '&textSearch=' + textSearch;
                                             window.open(strURL,'_blank');
                                         }
                                         
