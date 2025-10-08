@@ -380,8 +380,8 @@ include('IsLogin.php');
                                                                 '12:00', '13:00', '14:00', '15:00',
                                                                 '16:00', '17:00', '18:00'
                                                             ],
-                                                            minDate: new Date(), //yesterday is minimum date
-                                                            maxDate: new Date(new Date().setDate(todayDate + 2)),
+                                                            // minDate: new Date(), //yesterday is minimum date
+                                                            // maxDate: new Date(new Date().setDate(todayDate + 2)),
                                                             autoclose: true
                                                         }).attr('required', true)
                                                         // .attr('readonly', 'readonly');
@@ -397,8 +397,8 @@ include('IsLogin.php');
                                                                 '12:00', '13:00', '14:00', '15:00',
                                                                 '16:00', '17:00', '18:00'
                                                             ],
-                                                            minDate: new Date(), //yesterday is minimum date
-                                                            maxDate: new Date(new Date().setDate(todayDate + 3)),
+                                                            // minDate: new Date(), //yesterday is minimum date
+                                                            // maxDate: new Date(new Date().setDate(todayDate + 3)),
                                                             autoclose: true
                                                         }).attr('required', false);
                                                     });
@@ -416,8 +416,8 @@ include('IsLogin.php');
                                                             '12:00', '13:00', '14:00', '15:00',
                                                             '16:00', '17:00', '18:00'
                                                         ],
-                                                        minDate: new Date(), //yesterday is minimum date
-                                                        maxDate: new Date(new Date().setDate(todayDate + 3)),
+                                                        // minDate: new Date(), //yesterday is minimum date
+                                                        // maxDate: new Date(new Date().setDate(todayDate + 3)),
                                                         autoclose: true
                                                     }).attr('readonly', 'readonly');
                                                 });
