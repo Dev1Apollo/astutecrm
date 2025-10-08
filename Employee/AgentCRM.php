@@ -768,7 +768,8 @@ include('IsLogin.php');
                                             <select name="disposition_name" class="form-control" id="disposition_name" onchange="checkSubDispos();">
                                                 <option value="">Select Disposition Name</option>
                                                 <?php
-                                                $filterDisPosition = mysqli_query($dbconn, "SELECT iDispoId,dispoDesc FROM `dispositionmaster` where dispoType=1 and masterDispoId=0");
+                                                //$filterDisPosition = mysqli_query($dbconn, "SELECT iDispoId,dispoDesc FROM `dispositionmaster` where dispoType=1 and masterDispoId=0");
+                                                $filterDisPosition = mysqli_query($dbconn, "SELECT iDispoId,dispoDesc FROM `dispositionmaster` where masterDispoId=0");
                                                 while ($rowDispostion = mysqli_fetch_array($filterDisPosition)) {
                                                     ?>
                                                     <option value="<?php echo $rowDispostion['iDispoId']; ?>"><?php echo $rowDispostion['dispoDesc']; ?></option>

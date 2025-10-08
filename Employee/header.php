@@ -797,6 +797,7 @@
 
                                 <li><a href="<?php echo $web_url; ?>Employee/PaidUpdation.php">Paid updation</a></li>
                                 <li><a href="<?php echo $web_url; ?>Employee/RemovedCase.php">Remove Case</a></li>
+                                <li><a href="<?php echo $web_url; ?>Employee/DumpAssignedCase.php">Dump Assigned Case</a></li>
                                 <li><a href="<?php echo $web_url; ?>Employee/EntryWiseReport.php">Entry Wise Report</a></li>
                                 <li><a href="<?php echo $web_url; ?>Employee/LastDispositionWiseReport.php">Last Disposition Wise Report</a></li>
                                 <li><a href="<?php echo $web_url; ?>Employee/AgentPTPReport.php">Agents Wise PTP Report</a></li>

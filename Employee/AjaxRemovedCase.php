@@ -60,10 +60,19 @@ if ($_POST['action'] == 'ListUser') {
     $resultfilter = mysqli_query($dbconn, $filterstr);
     if (mysqli_num_rows($resultfilter) > 0) {
         ?>  
+        <div class="mb-3">
+            <button class="btn btn-danger btn-sm" id="delete_selected" style="margin-bottom:10px;">
+                <i class="fa fa-trash"></i> Delete Selected
+            </button>
+            <button class="btn btn-danger btn-sm" id="delete_all" style="margin-bottom:10px;">
+                <i class="fa fa-trash"></i> Delete All
+            </button>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered table-hover table-striped" width="100%" id="tableC">
                 <thead class="tbg">
                     <tr>
+                        <th class="pop_in_heading" style="text-align:center;"><input type="checkbox" id="select_all"></th>
                         <th class="pop_in_heading">#</th>
                         <th class="pop_in_heading">Loan App No</th>
                         <th class="pop_in_heading">Customer Name</th>
@@ -87,6 +96,9 @@ if ($_POST['action'] == 'ListUser') {
                         
                         echo "<tr>";
                         ?> 
+                        <td style="text-align:center;">
+                            <input type="checkbox" class="case_checkbox" value="<?php echo $rowfilter['iAppId']; ?>">
+                        </td>
                         <td style="text-align: center;"><?php echo $i; ?></td>
                         <td>
                             <div class="form-group form-md-line-input">
@@ -248,6 +260,35 @@ if ($_POST['action'] == 'restoreCase') {
     exit;
 }
 
+if ($_POST['action'] == 'multiDelete') {
+    $ids = $_POST['ids'] ?? [];
+    
+    if (empty($ids)) {
+        echo json_encode(['success' => false, 'message' => 'No cases selected!']);
+        exit;
+    }
+    
+    $idList = implode(',', array_map('intval', $ids));
+
+    // Delete permanently from remove_application
+    $deleteQuery = "DELETE FROM remove_application WHERE iAppId IN ($idList)";
+    if (mysqli_query($dbconn, $deleteQuery)) {
+        echo json_encode(['success' => true, 'message' => 'Selected cases deleted successfully!']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Error deleting selected cases.']);
+    }
+    exit;
+}
+
+if ($_POST['action'] == 'deleteAll') {
+    $deleteQuery = "DELETE FROM remove_application";
+    if (mysqli_query($dbconn, $deleteQuery)) {
+        echo json_encode(['success' => true, 'message' => 'All removed cases deleted successfully!']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Error deleting all cases.']);
+    }
+    exit;
+}
 if ($totalrecord > $per_page) {
     ?>
     <div class="row">
@@ -264,3 +305,64 @@ if ($totalrecord > $per_page) {
         </div>
     </div>
 <?php } ?>
+<script>
+$(document).ready(function() {
+
+    // Select all checkboxes
+    $('#select_all').on('click', function() {
+        $('.case_checkbox').prop('checked', this.checked);
+    });
+
+    // Delete selected cases
+    $('#delete_selected').on('click', function() {
+        var selected = [];
+        $('.case_checkbox:checked').each(function() {
+            selected.push($(this).val());
+        });
+
+        if (selected.length === 0) {
+            alert('Please select at least one case to delete.');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to permanently delete the selected case(s)?')) {
+            return;
+        }
+
+        $.ajax({
+            url: 'AjaxRemovedCase.php', // replace with actual PHP file name
+            type: 'POST',
+            data: {
+                action: 'multiDelete',
+                ids: selected
+            },
+            success: function(response) {
+                try {
+                    var res = JSON.parse(response);
+                    alert(res.message);
+                    if (res.success) location.reload();
+                } catch(e) {
+                    console.error(e);
+                    alert('Unexpected error occurred.');
+                }
+            }
+        });
+    });
+
+});
+
+$('#delete_all').on('click', function() {
+    if (!confirm('Are you sure you want to delete ALL removed cases?')) return;
+
+    $.ajax({
+        url: 'AjaxRemovedCase.php',
+        type: 'POST',
+        data: { action: 'deleteAll' },
+        success: function(response) {
+            var res = JSON.parse(response);
+            alert(res.message);
+            if (res.success) location.reload();
+        }
+    });
+});
+</script>
