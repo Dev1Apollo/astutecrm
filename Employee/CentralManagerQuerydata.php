@@ -1791,20 +1791,66 @@ switch ($action) {
                     $applicationId = $app['iAppId'];
     
                     // 1. Insert into payment history
-                    $insertQuery = "INSERT INTO application_payment_history (application_id, loan_number, paid_amount, paid_date) 
-                                    VALUES ('$applicationId', '" . mysqli_real_escape_string($dbconn, $loanNumber) . "', 
-                                            '" . mysqli_real_escape_string($dbconn, $paidAmount) . "', 
-                                            '$paidDate')";
+                    // $insertQuery = "INSERT INTO application_payment_history (application_id, loan_number, paid_amount, paid_date) 
+                    //                 VALUES ('$applicationId', '" . mysqli_real_escape_string($dbconn, $loanNumber) . "', 
+                    //                         '" . mysqli_real_escape_string($dbconn, $paidAmount) . "', 
+                    //                         '$paidDate')";
     
-                    mysqli_query($dbconn, $insertQuery) or die("Error inserting history at row $iCounterRow: " . mysqli_error($dbconn));
+                    // mysqli_query($dbconn, $insertQuery) or die("Error inserting history at row $iCounterRow: " . mysqli_error($dbconn));
+                    
+                    // 1. Insert or Update payment history
+                    $loanNumberEsc = mysqli_real_escape_string($dbconn, $loanNumber);
+                    $paidAmountEsc = mysqli_real_escape_string($dbconn, $paidAmount);
+                    
+                    // Check if payment already exists
+                    $checkPayment = mysqli_query($dbconn, "
+                        SELECT id 
+                        FROM application_payment_history 
+                        WHERE application_id = '$applicationId' order by id desc
+                        LIMIT 1
+                    ") or die("Error checking payment at row $iCounterRow: " . mysqli_error($dbconn));
+                    
+                    if (mysqli_num_rows($checkPayment) > 0) {
+                        // Record exists → Update
+                        $payment = mysqli_fetch_assoc($checkPayment);
+                        $paymentId = $payment['id'];
+                    
+                        $updateHistory = "
+                            UPDATE application_payment_history 
+                            SET paid_amount = '$paidAmountEsc', paid_date = '$paidDate' 
+                            WHERE id = '$paymentId'
+                        ";
+                    
+                        mysqli_query($dbconn, $updateHistory) or die("Error updating history at row $iCounterRow: " . mysqli_error($dbconn));
+                    
+                    } else {
+                        // Record not found → Insert new
+                        $insertQuery = "
+                            INSERT INTO application_payment_history (application_id, loan_number, paid_amount, paid_date) 
+                            VALUES ('$applicationId', '$loanNumberEsc', '$paidAmountEsc', '$paidDate')
+                        ";
+                        mysqli_query($dbconn, $insertQuery) or die("Error inserting history at row $iCounterRow: " . mysqli_error($dbconn));
+                    }
+
     
                     // 2. Update application table only if not already paid
+                    // if ($app['isPaid'] != 1) {
+                    //     $updateQuery = "UPDATE application 
+                    //                     SET isPaid = 1, 
+                    //                         PaidDate = '$paidDate' 
+                    //                     WHERE iAppId = '$applicationId' 
+                    //                       AND isDelete = 0";
+                    //     mysqli_query($dbconn, $updateQuery) or die("Error updating application at row $iCounterRow: " . mysqli_error($dbconn));
+                    // }
+                    
                     if ($app['isPaid'] != 1) {
-                        $updateQuery = "UPDATE application 
-                                        SET isPaid = 1, 
-                                            PaidDate = '$paidDate' 
-                                        WHERE iAppId = '$applicationId' 
-                                          AND isDelete = 0";
+                        $updateQuery = "
+                            UPDATE application 
+                            SET isPaid = 1, 
+                                PaidDate = '$paidDate' 
+                            WHERE iAppId = '$applicationId' 
+                              AND isDelete = 0
+                        ";
                         mysqli_query($dbconn, $updateQuery) or die("Error updating application at row $iCounterRow: " . mysqli_error($dbconn));
                     }
     

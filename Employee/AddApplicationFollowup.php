@@ -160,11 +160,11 @@ include('IsLogin.php');
                                     
                                     <div class="form-group col-md-3" id="FollowUpDate">
                                         <label for="form_control_1">Next Follow Up Date</label>
-                                        <input type="text" id="datetimepicker" name="Date" class="form-control date-set" placeholder="Enter The Next Follow Up Date"/>
+                                        <input type="text" id="datetimepicker" name="Date" autocomplete="off" class="form-control date-set" placeholder="Enter The Next Follow Up Date"/>
                                     </div>
                                     <div class="form-group col-md-3" style="display: none;" id="divPTPDate">
                                         <label for="form_control_1">PTP Date*</label>
-                                        <input type="text" id="PTPDate" name="PTPDate" class="form-control date-set" placeholder="Enter The PTP Date"/>
+                                        <input type="text" id="PTPDate" name="PTPDate" autocomplete="off" class="form-control date-set" placeholder="Enter The PTP Date"/>
                                     </div>
                                     <div class="form-group col-md-3" style="display:none" id="PTPAmount">
                                         <label for="form_control_1">PTP Amount*</label>

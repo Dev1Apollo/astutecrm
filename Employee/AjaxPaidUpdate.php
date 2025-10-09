@@ -19,7 +19,7 @@ if ($_POST['action'] == 'ListUser') {
         $where.=" and applicatipnNo  like '" . $_REQUEST['applicatipnNo'] . "' ";
     } 
 
-    $filterstr = "SELECT * FROM `application`  inner join application_payment_history on  application.iAppId=application_payment_history.application_id " . $where . "  and application.isPaid=1 and application.isDelete='0'  and  application.iStatus='1' order by iAppId desc";
+    $filterstr = "SELECT application.applicatipnNo,application.customerName,application.loanAmount,application_payment_history.paid_amount,application_payment_history.paid_date as PaidDate FROM `application`  inner join application_payment_history on  application.iAppId=application_payment_history.application_id " . $where . "  and application.isPaid=1 and application.isDelete='0'  and  application.iStatus='1' order by iAppId desc";
     $countstr = "SELECT count(*) as TotalRow FROM `application`  inner join application_payment_history on  application.iAppId=application_payment_history.application_id " . $where . "  and application.isPaid=1 and application.isDelete='0'  and  application.iStatus='1' ";
 
     $resrowcount = mysqli_query($dbconn, $countstr);

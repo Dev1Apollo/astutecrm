@@ -219,7 +219,9 @@ include('IsLogin.php');
                                                     echo "</td>";
                                                 } else {
                                                     echo '<td style="background-color: red">';
+                                                    echo '<a href="javascript:void(0);" onclick="showZeroDialLeads(\'MTD\')" style="color: white; text-decoration: underline; font-weight: bold;">';
                                                     echo $filterTotalzeroDialLeads['totalCount'];
+                                                    echo '</a>';
                                                     echo "</td>";
                                                 }
                                                 ?>
@@ -256,7 +258,9 @@ include('IsLogin.php');
                                                     echo "</td>";
                                                 } else {
                                                     echo '<td style="background-color: red">';
+                                                    echo '<a href="javascript:void(0);" onclick="showZeroDialLeads(\'FTD\')" style="color: white; text-decoration: underline; font-weight: bold;">';
                                                     echo $filterTodaysZeroDialLeads['totalCount'];
+                                                    echo '</a>';
                                                     echo "</td>";
                                                 }
                                                 ?>
@@ -278,6 +282,7 @@ include('IsLogin.php');
                                 </div>
                             </div>
                         </div>
+                        <input type="hidden" name="zeroDialType" id="zeroDialType" value="">
                         <?php } ?>
                         <?php
                         if ($_SESSION['Designation'] == 4) {
@@ -793,6 +798,9 @@ include('IsLogin.php');
                                             </select>
                                         </div>
                                     </div>
+                                    <div class="form-group col-md-3">
+                                        <input type="type" name="textSearch" id="textSearch" placeholder="Search Cust. Name / Loan No." value="<?= $_REQUEST['textSearch'] ?? ''; ?>" class="form-control"> 
+                                    </div>
                                     <?php
                                         if ($_SESSION['Designation'] == 4 || $_SESSION['Designation'] == 2) {
                                             $filterTeamLeader = mysqli_query($dbconn, "SELECT * FROM `employeedesignation` where iEmployeeId='" . $_SESSION['EmployeeId'] . "' and iDesignationId='4' and istatus='1' and isDelete='0'");
@@ -982,13 +990,15 @@ include('IsLogin.php');
                                             var EmployeeId = $('#EmployeeId').val();
                                             var disposition_name = $('#disposition_name').val();
                                             var sub_disposition = $('#sub_disposition').val();
-
+                                            var textSearch =  $("#textSearch").val();
+                                            var zeroDialType = $("#zeroDialType").val(); // Add this line
+                                            
                                             $('#loading').css("display", "block");
                                             $.ajax({
                                                 type: "POST",
                                                 url: "<?php echo $web_url; ?>Employee/AjaxAgentCRM.php",
                                                 //data: {action: 'ListUser', Page: Page, strfilter: strfilter, filterValue: filterValue, EmployeeId: EmployeeId, fromdate: fromdate, todate: todate},
-                                                data: {action: 'ListUser', Page: Page, EmployeeId: EmployeeId, sub_disposition: sub_disposition, disposition_name: disposition_name,sort_field: currentSortField,sort_order: currentSortOrder},
+                                                data: {action: 'ListUser', Page: Page, EmployeeId: EmployeeId, sub_disposition: sub_disposition, disposition_name: disposition_name,sort_field: currentSortField,sort_order: currentSortOrder, textSearch: textSearch,zeroDialType: zeroDialType},
                                                 success: function (msg) {
                                                     $('#SLID').show();
                                                     $('#loading').css("display", "none");
@@ -1004,11 +1014,24 @@ include('IsLogin.php');
                                             var EmployeeId = $('#EmployeeId').val();
                                             var fromdate = $('#formdate').val();
                                             var todate = $('#todate').val();
-                                            var strURL = 'TLEmployeeCRMExcel.php?strfilter=' + strfilter + '&todate=' + todate + '&fromdate='+ fromdate + '&filterValue=' + filterValue + '&EmployeeId=' + EmployeeId;
+                                            var textSearch =  $("#textSearch").val();
+                                            var strURL = 'TLEmployeeCRMExcel.php?strfilter=' + strfilter + '&todate=' + todate + '&fromdate='+ fromdate + '&filterValue=' + filterValue + '&EmployeeId=' + EmployeeId + '&textSearch=' + textSearch;
                                             window.open(strURL,'_blank');
                                         }
                                         
-                                        
+                                        function clearData(){
+                                            // Reset the zero dial type
+                                            $('#zeroDialType').val('');
+                                            
+                                            // Reset other fields
+                                            $('#disposition_name').val('');
+                                            $('#sub_disposition').val('');
+                                            $('#textSearch').val('');
+                                            $('#EmployeeId').val('');
+                                            
+                                            // Reload data
+                                            PageLoadData(1);
+                                        }
                                         function checkSubDispos() {
                                             var id = $('#disposition_name').val();
                                             if (id == 12) {
@@ -1040,7 +1063,35 @@ include('IsLogin.php');
                                                 $('#subDisPos').hide();
                                             }
                                         }
+                                        
+                                        function showZeroDialLeads(type) {
+                                            // Set the disposition filter to show zero dial leads
+                                            $('#disposition_name').val(''); // Clear any existing disposition filter
+                                            
+                                            // Set text search to empty
+                                            $('#textSearch').val('');
+                                            
+                                            // For zero dial, we need to filter leads that have no followup entries
+                                            // We'll use a custom approach by setting a hidden field or using the existing filter
+                                            
+                                            if (type === 'MTD') {
+                                                // For Month-to-Date zero dial
+                                                // We'll set a custom indicator that we can check in the PHP
+                                                $('#zeroDialType').val('MTD');
+                                            } else if (type === 'FTD') {
+                                                // For Today's zero dial  
+                                                $('#zeroDialType').val('FTD');
+                                            }
+                                            
+                                            // Trigger the search
+                                            PageLoadData(1);
+                                            
+                                            // Scroll to the results section
+                                            $('html, body').animate({
+                                                scrollTop: $("#SLID").offset().top
+                                            }, 1000);
+                                        }
         </script>
-    </body>
+    </body> 
 
 </html>
