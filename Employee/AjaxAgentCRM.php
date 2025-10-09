@@ -24,6 +24,31 @@ if ($_POST['action'] == 'ListUser') {
     if(isset($_REQUEST['sub_disposition']) && $_REQUEST['sub_disposition'] != ''){
         $where .= " AND applicationfollowup.subDispoId = '" . intval($_REQUEST['sub_disposition']) . "'";
     }
+    
+    
+    if(isset($_REQUEST['zeroDialType']) && $_REQUEST['zeroDialType'] != '') {
+        $zeroDialType = $_REQUEST['zeroDialType'];
+        
+        if($zeroDialType == 'MTD') {
+            // Month-to-Date zero dial - leads with no followup in current month
+            $where .= " AND application.iAppId NOT IN (
+                SELECT iAppId FROM applicationfollowup 
+                WHERE MONTH(STR_TO_DATE(strEntryDate,'%d-%m-%Y'))=MONTH(CURRENT_DATE()) 
+                AND YEAR(STR_TO_DATE(strEntryDate,'%d-%m-%Y'))=YEAR(CURRENT_DATE())
+            )";
+        } else if($zeroDialType == 'FTD') {
+            // Today's zero dial - leads with no followup today
+            $where .= " AND application.iAppId NOT IN (
+                SELECT iAppId FROM applicationfollowup 
+                WHERE MONTH(STR_TO_DATE(strEntryDate,'%d-%m-%Y'))=MONTH(CURRENT_DATE()) 
+                AND YEAR(STR_TO_DATE(strEntryDate,'%d-%m-%Y'))=YEAR(CURRENT_DATE())
+                AND STR_TO_DATE(strEntryDate,'%d-%m-%Y') = CURRENT_DATE()
+            )";
+        }
+        
+        // Also add a marker to show this is a zero dial view
+        $where .= " AND application.isWithdraw=0 AND application.isPaid=0";
+    }
 //     if (isset($_REQUEST['strfilter']) && $_REQUEST['strfilter'] != '') {
 //         if (isset($_REQUEST['filterValue']) && $_REQUEST['filterValue']) {
 //             if ($_REQUEST['strfilter'] == 'TotalAttempt') {
@@ -70,9 +95,18 @@ if ($_POST['action'] == 'ListUser') {
                 END,
                 STR_TO_DATE(applicationfollowup.strEntryDate, '%d-%m-%Y') ASC";
     
-    if(isset($_REQUEST['sort_field']) && $_REQUEST['sort_field'] == 'loanAmount') {
+    // if(isset($_REQUEST['sort_field']) && $_REQUEST['sort_field'] == 'loanAmount') {
+    //     $sortOrder = (isset($_REQUEST['sort_order']) && $_REQUEST['sort_order'] == 'desc') ? 'DESC' : 'ASC';
+    //     $orderBy = "ORDER BY CAST(application.loanAmount AS UNSIGNED) $sortOrder";
+    // } 
+    
+    if(isset($_REQUEST['sort_field'])) {
         $sortOrder = (isset($_REQUEST['sort_order']) && $_REQUEST['sort_order'] == 'desc') ? 'DESC' : 'ASC';
-        $orderBy = "ORDER BY CAST(application.loanAmount AS UNSIGNED) $sortOrder";
+        if($_REQUEST['sort_field'] == 'loanAmount') {
+            $orderBy = "ORDER BY CAST(application.loanAmount AS UNSIGNED) $sortOrder";
+        } else if($_REQUEST['sort_field'] == 'LastCallDate') {
+            $orderBy = "ORDER BY STR_TO_DATE(applicationfollowup.strEntryDate, '%d-%m-%Y') $sortOrder";
+        }
     }
     
     if ($_SESSION['Designation'] == 4) {
@@ -121,7 +155,8 @@ if ($_POST['action'] == 'ListUser') {
 //            . "applicationfollowup.followupDate,applicationfollowup.PTPDate,applicationfollowup.dispoType,applicationfollowup.remark,applicationfollowup.strEntryDate,applicationfollowup.mainDispoId,applicationfollowup.iAppLogId "
 //            . " FROM `application` LEFT JOIN (select max(applicationfollowup.iAppLogId) as iAppLogId,applicationfollowup.iAppId,applicationfollowup.followupDate,applicationfollowup.PTPDate,applicationfollowup.dispoType,applicationfollowup.remark,applicationfollowup.strEntryDate,applicationfollowup.mainDispoId from applicationfollowup group by applicationfollowup.iAppId ORDER BY applicationfollowup.iAppLogId DESC) as "
 //            . "applicationfollowup ON application.iAppId=applicationfollowup.iAppId  " . $where . $whereEmp . " and bucket!='' and isWithdraw=0 and isPaid=0 and isDelete='0'  and  iStatus='1'  ORDER BY applicationfollowup.iAppLogId DESC";
-    $countstr = "SELECT count(*) as TotalRow FROM `application` LEFT JOIN (select max(applicationfollowup.iAppLogId) as AppLogId,applicationfollowup.strEntryDate,applicationfollowup.mainDispoId,applicationfollowup.followupDate,applicationfollowup.PTPDate,applicationfollowup.remark,applicationfollowup.iAppId,applicationfollowup.subDispoId from applicationfollowup group by applicationfollowup.iAppLogId) as applicationfollowup ON application.iAppId=applicationfollowup.iAppId " . $where . $whereEmp . " and isWithdraw=0 and isPaid=0 and isDelete='0' and  iStatus='1' ";
+    //$countstr = "SELECT count(*) as TotalRow FROM `application` LEFT JOIN (select max(applicationfollowup.iAppLogId) as AppLogId,applicationfollowup.strEntryDate,applicationfollowup.mainDispoId,applicationfollowup.followupDate,applicationfollowup.PTPDate,applicationfollowup.remark,applicationfollowup.iAppId,applicationfollowup.subDispoId from applicationfollowup group by applicationfollowup.iAppLogId) as applicationfollowup ON application.iAppId=applicationfollowup.iAppId " . $where . $whereEmp . " and isWithdraw=0 and isPaid=0 and isDelete='0' and  iStatus='1' ";
+    $countstr = "SELECT count(*) as TotalRow FROM `application` LEFT JOIN applicationfollowup ON application.iAppLogId=applicationfollowup.iAppLogId  " . $where . $whereEmp . " and isWithdraw=0 and isPaid=0 and isDelete='0'  and  iStatus='1'";
     //and bucket!='' 
 
     $resrowcount = mysqli_query($dbconn, $countstr);
@@ -248,7 +283,7 @@ if ($_POST['action'] == 'ListUser') {
                                         //     echo '<th class="pop_in_heading">FOS Contact</th>';
                                         // }
                                         if ($rowSetting['LastCallDate'] == 1) {
-                                            echo '<th class="pop_in_heading">Last <br /> Call Date</th>';
+                                            echo '<th class="pop_in_heading sortable" onclick="sortTable(\'LastCallDate\')">Last <br /> Call Date</th>';
                                         }
                                         if ($rowSetting['Lastdisposition'] == 1) {
                                             echo '<th class="pop_in_heading">Last <br /> Disposition</th>';
@@ -291,7 +326,7 @@ if ($_POST['action'] == 'ListUser') {
                             <!--<th class="pop_in_heading">Agent Id</th>-->
                             <!--<th class="pop_in_heading">FOS Name</th>-->
                             <!--<th class="pop_in_heading">FOS Contact</th>-->
-                            <th class="pop_in_heading">Last <br /> Call Date</th>
+                            <th class="pop_in_heading sortable" onclick="sortTable('LastCallDate')">Last <br /> Call Date</th>
                             <th class="pop_in_heading">Last <br /> Disposition</th>
                             <th class="pop_in_heading">PTP <br /> Amount</th>
                             <th class="pop_in_heading">Follow-up / <br />PTP Date</th>
@@ -333,7 +368,7 @@ if ($_POST['action'] == 'ListUser') {
                                 <div class="form-group form-md-line-input ">
                                     <!--<a value="="  title="APPLICATION FOLLOWUP" onclick="window.open('<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>', 'popUpWindow', 'height=500,width=1250,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no,status=yes');">
                                         <?php echo $rowfilter['applicatipnNo']; ?> </a>-->
-                                    <a value="="  title="APPLICATION FOLLOWUP" href="<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>">
+                                    <a value="="  title="APPLICATION FOLLOWUP" style="font-size: 12px;" href="<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>">
                                         <?php echo $rowfilter['applicatipnNo']; ?></a>
                                 </div>
                             </td>
@@ -355,7 +390,7 @@ if ($_POST['action'] == 'ListUser') {
                                 <div class="form-group form-md-line-input ">
                                     <!--<a value="="  title="APPLICATION FOLLOWUP" onclick="window.open('<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>', 'popUpWindow', 'height=500,width=1250,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no,status=yes');">-->
                                     <!--    <?php echo $rowfilter['customerName']; ?></a>-->
-                                    <a value="="  title="APPLICATION FOLLOWUP" href="<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>">
+                                    <a value="="  title="APPLICATION FOLLOWUP" style="font-size: 12px;" href="<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>">
                                     <?php echo $rowfilter['customerName']; ?></a>
                                 </div>
                             </td>
@@ -562,7 +597,7 @@ if ($_POST['action'] == 'ListUser') {
                             <div class="form-group form-md-line-input ">
                                 <!--<a value="="  title="APPLICATION FOLLOWUP" onclick="window.open('<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>', 'popUpWindow', 'height=500,width=1250,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no,status=yes');">
                                     <?php echo $rowfilter['applicatipnNo']; ?> </a>-->
-                                <a value="="  title="APPLICATION FOLLOWUP" href="<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>">
+                                <a value="="  title="APPLICATION FOLLOWUP" style="font-size: 12px;" href="<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>">
                                     <?php echo $rowfilter['applicatipnNo']; ?></a>
                             </div>
                         </td>
@@ -576,7 +611,7 @@ if ($_POST['action'] == 'ListUser') {
                             <div class="form-group form-md-line-input ">
                                 <!--<a value="="  title="APPLICATION FOLLOWUP" onclick="window.open('<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>', 'popUpWindow', 'height=500,width=1250,left=100,top=100,resizable=yes,scrollbars=yes,toolbar=yes,menubar=no,location=no,directories=no,status=yes');">
                                     <?php echo $rowfilter['customerName']; ?></a>-->
-                            <a value="="  title="APPLICATION FOLLOWUP" href="<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>">
+                            <a value="="  title="APPLICATION FOLLOWUP" style="font-size: 12px;" href="<?php echo $web_url; ?>Employee/AddApplicationFollowup.php?token=<?php echo $rowfilter['iAppId']; ?>">
                                 <?php echo $rowfilter['customerName']; ?></a>
                             </div>
                         </td>

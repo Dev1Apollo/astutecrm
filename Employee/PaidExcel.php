@@ -9,8 +9,7 @@ if (isset($_REQUEST['Search_Txt'])) {
         $where.=" and  empname like '%$_REQUEST[Search_Txt]%'";
     }
 }
-$filterstr = "SELECT applicatipnNo,bucket,customerName,branch,state,customerAddress,customerCity,customerZipcode,paid_amount,
-    loanAmount,EMIAmount,agencyName,FOSName,FosNumber,PaidDate,agentId,iAppId
+$filterstr = "SELECT application.applicatipnNo,application.customerName,application.loanAmount,application_payment_history.paid_amount,application_payment_history.paid_date as PaidDate
     FROM `application` inner join application_payment_history on  application.iAppId=application_payment_history.application_id  
     " . $where . " and isPaid=1 and isDelete='0'  and  istatus='1' order by applicatipnNo asc";
 
