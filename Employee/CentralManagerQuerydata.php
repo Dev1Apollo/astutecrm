@@ -2809,7 +2809,234 @@ switch ($action) {
         // }
         echo $statusMsg = $dealer_res ? '2' : '0';
         break;
+    
+    case "UploadFollowupEntry":
 
+        $errorString = "";
+        $iColumnCounter = array();
+        $ValCounter = 0;
+        $jCounterArray = 0;
+
+        if (isset($_REQUEST['IMgallery'])) {
+
+            $headerArray = array();
+            $filename = trim($_REQUEST['IMgallery']);
+            $file_path = 'temp/' . $filename;
+            $Reader = new SpreadsheetReader($file_path);
+            $Sheets = $Reader->Sheets();
+
+            // ================= FIRST PASS: VALIDATION =================
+            foreach ($Sheets as $Index => $Name) {
+                $Reader->ChangeSheet($Index);
+
+                foreach ($Reader as $key => $slice) {
+                    if (empty(array_filter($slice))) continue; // skip empty rows
+
+                    if ($ValCounter == 0) {
+                        // Read Headers
+                        for ($icounter = 0; $icounter < count($slice); $icounter++) {
+                            $header = trim($slice[$icounter]);
+
+                            if ($header != "") {
+                                $headerArray[$jCounterArray] = $header;
+
+                                if ($header == "Loan Number")              $iColumnCounter['loan_number'] = $icounter;
+                                if ($header == "Disposition")              $iColumnCounter['disposition'] = $icounter;
+                                if ($header == "Sub Disposition")          $iColumnCounter['sub_disposition'] = $icounter;
+                                if ($header == "Follow Up/PTP Date")       $iColumnCounter['followup_ptp_date'] = $icounter;
+                                if ($header == "PTP Amount")               $iColumnCounter['ptp_amount'] = $icounter;
+                                if ($header == "Comment")                  $iColumnCounter['remark'] = $icounter;
+
+                                $jCounterArray++;
+                            }
+                        }
+                    } else {
+                        $RowCounter = $key + 1;
+
+                        $loanNumber     = trim($slice[$iColumnCounter['loan_number']] ?? '');
+                        $disposition    = trim($slice[$iColumnCounter['disposition']] ?? '');
+                        $subDisposition = trim($slice[$iColumnCounter['sub_disposition']] ?? '');
+                        $followupRaw    = trim($slice[$iColumnCounter['followup_ptp_date']] ?? '');
+                        $ptpamount      = trim($slice[$iColumnCounter['ptp_amount']] ?? '');
+
+                        // ========== VALIDATION ==========
+                        if ($loanNumber == "") {
+                            $errorString .= "Row $RowCounter: Loan Number is required.<br/>";
+                            continue;
+                        }
+
+                        if ($disposition == "") {
+                            $errorString .= "Row $RowCounter: Disposition is required.<br/>";
+                            continue;
+                        }
+
+                        if ($subDisposition == "") {
+                            $errorString .= "Row $RowCounter: Sub Disposition is required.<br/>";
+                            continue;
+                        }
+
+                        if (strtolower($disposition) == "promise to pay") {
+                            if ($followupRaw == "") {
+                                $errorString .= "Row $RowCounter: Follow Up/PTP Date required when Disposition is 'Promise to Pay'.<br/>";
+                                continue;
+                            }
+
+                            if ($ptpamount == "") {
+                                $errorString .= "Row $RowCounter: PTP Amount required when Disposition is 'Promise to Pay'.<br/>";
+                                continue;
+                            }
+                            if (!is_numeric($ptpamount) || $ptpamount <= 0) {
+                                $errorString .= "Row $RowCounter: PTP Amount must be a positive number when Disposition is 'Promise to Pay'.<br/>";
+                                continue;
+                            }
+                        }
+
+                        // Check if application exists
+                        $result = mysqli_query($dbconn, "
+                                SELECT iAppId, agentId 
+                                FROM application 
+                                WHERE isDelete='0' 
+                                AND applicatipnNo='" . mysqli_real_escape_string($dbconn, $loanNumber) . "'
+                                ORDER BY iAppId DESC 
+                                LIMIT 1
+                            ") or die(mysqli_error($dbconn));
+
+                        $app = mysqli_fetch_assoc($result);
+
+                        if (!$app) {
+                            $errorString .= "Row $RowCounter: Application not found for Loan Number '$loanNumber'.<br/>";
+                            continue;
+                        }
+
+                        if (trim($app['agentId']) == '') {
+                            $errorString .= "Row $RowCounter: Agent not assigned for Loan Number '$loanNumber'.<br/>";
+                            continue;
+                        }
+                    }
+
+                    $ValCounter++;
+                }
+            }
+
+            // Check for missing headers
+            $requiredHeaders = ['loan_number', 'disposition', 'sub_disposition', 'followup_ptp_date'];
+            foreach ($requiredHeaders as $header) {
+                if (!isset($iColumnCounter[$header])) {
+                    echo "Error: Missing required column header (" . ucwords(str_replace('_', ' ', $header)) . ").";
+                    unlink($file_path);
+                    break 2;
+                }
+            }
+
+            // Validation errors
+            if (!empty($errorString)) {
+                echo "Error:<br/>" . $errorString;
+                unlink($file_path);
+                break;
+            }
+
+            // ================= SECOND PASS: INSERT FOLLOW-UP =================
+            $iCounterRow = 0;
+            foreach ($Sheets as $Index => $Name) {
+                $Reader->ChangeSheet($Index);
+
+                foreach ($Reader as $key => $slice) {
+                    if (empty(array_filter($slice))) continue;
+                    if ($iCounterRow == 0) {
+                        $iCounterRow++;
+                        continue;
+                    }
+
+                    $loanNumber     = trim($slice[$iColumnCounter['loan_number']] ?? '');
+                    $disposition    = trim($slice[$iColumnCounter['disposition']] ?? '');
+                    $subDisposition = trim($slice[$iColumnCounter['sub_disposition']] ?? '');
+                    $followupRaw    = trim($slice[$iColumnCounter['followup_ptp_date']] ?? '');
+                    $ptpAmount      = trim($slice[$iColumnCounter['ptp_amount']] ?? '');
+                    $remark         = trim($slice[$iColumnCounter['remark']] ?? '');
+
+                    $commonDate = !empty($followupRaw) ? date('Y-m-d', strtotime($followupRaw)) : null;
+                    $ptpAmount  = ($ptpAmount != "" && is_numeric($ptpAmount)) ? $ptpAmount : 0;
+
+                    // Get application info
+                    $result = mysqli_query($dbconn, "
+                            SELECT iAppId, agentId 
+                            FROM application 
+                            WHERE isDelete='0' 
+                            AND applicatipnNo='" . mysqli_real_escape_string($dbconn, $loanNumber) . "'
+                            ORDER BY iAppId DESC 
+                            LIMIT 1
+                        ") or die(mysqli_error($dbconn));
+
+                    $app = mysqli_fetch_assoc($result);
+                    if (!$app) continue;
+
+                    $applicationId = $app['iAppId'];
+                    $agentId       = $app['agentId'];
+
+                    // Get employee iEmpId from employee table
+                    $empQuery = mysqli_query($dbconn, "
+                            SELECT employeeid 
+                            FROM employee 
+                            WHERE employeeid = '" . mysqli_real_escape_string($dbconn, $agentId) . "'
+                            LIMIT 1
+                        ") or die(mysqli_error($dbconn));
+                    $emp = mysqli_fetch_assoc($empQuery);
+                    $iEmpId = $emp ? $emp['employeeid'] : 0;
+
+                    // Get dispoType from dispositionmaster
+                    $dispoQuery = mysqli_query($dbconn, "
+                            SELECT dispoType 
+                            FROM dispositionmaster 
+                            WHERE masterDispoId = '" . mysqli_real_escape_string($dbconn, $disposition) . "'
+                            LIMIT 1
+                        ") or die(mysqli_error($dbconn));
+                    $dispo = mysqli_fetch_assoc($dispoQuery);
+                    $dispoType = $dispo ? $dispo['dispoType'] : '';
+
+                    // Determine which fields to fill
+                    $followupDate = $commonDate;
+                    $ptpDate = (strtolower($disposition) == "promise to pay") ? $commonDate : null;
+
+                    // Insert into applicationfollowup
+                    $insertQuery = "
+                            INSERT INTO applicationfollowup 
+                            (iAppId, applicatipnNo, iEmpId, dispoType, mainDispoId, subDispoId, followupDate, PTPDate, PTP_Amount, remark, strEntryDate, strIP)
+                            VALUES (
+                                '$applicationId',
+                                '" . mysqli_real_escape_string($dbconn, $loanNumber) . "',
+                                '$iEmpId',
+                                '" . mysqli_real_escape_string($dbconn, $dispoType) . "',
+                                '" . mysqli_real_escape_string($dbconn, $disposition) . "',
+                                '" . mysqli_real_escape_string($dbconn, $subDisposition) . "',
+                                " . ($followupDate ? "'$followupDate'" : "NULL") . ",
+                                " . ($ptpDate ? "'$ptpDate'" : "NULL") . ",
+                                '$ptpAmount',
+                                '" . mysqli_real_escape_string($dbconn, $remark) . "',
+                                '" . date('Y-m-d H:i:s') . "',
+                                '" . $_SERVER['REMOTE_ADDR'] . "'
+                            )
+                        ";
+
+                    mysqli_query($dbconn, $insertQuery) or die("Error inserting follow-up at row $iCounterRow: " . mysqli_error($dbconn));
+                    $followupId = mysqli_insert_id($dbconn);
+
+                    // Update application
+                    $updateApp = "
+                            UPDATE application 
+                            SET iAppLogId = '$followupId', isFollowDone = 1 
+                            WHERE iAppId = '$applicationId'
+                        ";
+                    mysqli_query($dbconn, $updateApp) or die("Error updating application: " . mysqli_error($dbconn));
+
+                    $iCounterRow++;
+                }
+            }
+
+            echo "Follow-up records uploaded and applications updated successfully.";
+            @unlink($file_path);
+        }
+
+        break;
 
 
     default:
