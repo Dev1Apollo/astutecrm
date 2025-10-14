@@ -2954,7 +2954,26 @@ switch ($action) {
                     $ptpAmount      = trim($slice[$iColumnCounter['ptp_amount']] ?? '');
                     $remark         = trim($slice[$iColumnCounter['remark']] ?? '');
 
-                    $commonDate = !empty($followupRaw) ? date('Y-m-d', strtotime($followupRaw)) : null;
+                    // $commonDate = !empty($followupRaw) ? date('d-m-Y', strtotime($followupRaw)) : null;
+                    //$commonDate = !empty($followupRaw) ? date('d-m-Y', strtotime($followupRaw)) : null;
+                    $commonDate = null;
+                    if (!empty($followupRaw)) {
+                        // Try to parse normal date formats first
+                        $dt = DateTime::createFromFormat('d-m-Y', $followupRaw)
+                            ?: DateTime::createFromFormat('Y-m-d', $followupRaw)
+                            ?: DateTime::createFromFormat('d/m/Y', $followupRaw);
+                    
+                        // If Excel sent a number (e.g., 45652)
+                        if (!$dt && is_numeric($followupRaw)) {
+                            $unixDate = ($followupRaw - 25569) * 86400; // Excel epoch offset
+                            $dt = (new DateTime())->setTimestamp($unixDate);
+                        }
+                    
+                        // Final formatted value
+                        if ($dt) {
+                            $commonDate = $dt->format('d-m-Y'); // your desired format
+                        }
+                    }
                     $ptpAmount  = ($ptpAmount != "" && is_numeric($ptpAmount)) ? $ptpAmount : 0;
 
                     // Get application info
@@ -2984,20 +3003,43 @@ switch ($action) {
                     $iEmpId = $emp ? $emp['employeeid'] : 0;
 
                     // Get dispoType from dispositionmaster
+                    // $dispoQuery = mysqli_query($dbconn, "
+                    //         SELECT dispoType 
+                    //         FROM dispositionmaster 
+                    //         WHERE masterDispoId = '" . mysqli_real_escape_string($dbconn, $disposition) . "'
+                    //         LIMIT 1
+                    //     ") or die(mysqli_error($dbconn));
+                    // $dispo = mysqli_fetch_assoc($dispoQuery);
+                    // $dispoType = $dispo ? $dispo['dispoType'] : '';
+                    
+                    // Get dispoType from dispositionmaster
                     $dispoQuery = mysqli_query($dbconn, "
-                            SELECT dispoType 
+                            SELECT dispoType,iDispoId
                             FROM dispositionmaster 
-                            WHERE masterDispoId = '" . mysqli_real_escape_string($dbconn, $disposition) . "'
+                            WHERE dispoDesc = '" . mysqli_real_escape_string($dbconn, $disposition) . "'
                             LIMIT 1
                         ") or die(mysqli_error($dbconn));
                     $dispo = mysqli_fetch_assoc($dispoQuery);
                     $dispoType = $dispo ? $dispo['dispoType'] : '';
+                    $mainDispoId = $dispo ? $dispo['iDispoId'] : '';
+
+                    $sub_dispoQuery = mysqli_query($dbconn, "
+                            SELECT iDispoId
+                            FROM dispositionmaster 
+                            WHERE dispoDesc = '" . mysqli_real_escape_string($dbconn, $subDisposition) . "'
+                            LIMIT 1
+                        ") or die(mysqli_error($dbconn));
+                    $sub_dispo = mysqli_fetch_assoc($sub_dispoQuery);
+                    $subDispoId = $dispo ? $dispo['iDispoId'] : '';
 
                     // Determine which fields to fill
-                    $followupDate = $commonDate;
+                    //$followupDate = $commonDate;
+                    $followupDate = (strtolower($disposition) != "promise to pay") ? $commonDate : null;
                     $ptpDate = (strtolower($disposition) == "promise to pay") ? $commonDate : null;
 
                     // Insert into applicationfollowup
+                    // '" . mysqli_real_escape_string($dbconn, $disposition) . "',
+                    // '" . mysqli_real_escape_string($dbconn, $subDisposition) . "',
                     $insertQuery = "
                             INSERT INTO applicationfollowup 
                             (iAppId, applicatipnNo, iEmpId, dispoType, mainDispoId, subDispoId, followupDate, PTPDate, PTP_Amount, remark, strEntryDate, strIP)
@@ -3006,17 +3048,18 @@ switch ($action) {
                                 '" . mysqli_real_escape_string($dbconn, $loanNumber) . "',
                                 '$iEmpId',
                                 '" . mysqli_real_escape_string($dbconn, $dispoType) . "',
-                                '" . mysqli_real_escape_string($dbconn, $disposition) . "',
-                                '" . mysqli_real_escape_string($dbconn, $subDisposition) . "',
+                                
+                                '" . mysqli_real_escape_string($dbconn, $mainDispoId) . "',
+                                '" . mysqli_real_escape_string($dbconn, $subDispoId) . "',
                                 " . ($followupDate ? "'$followupDate'" : "NULL") . ",
                                 " . ($ptpDate ? "'$ptpDate'" : "NULL") . ",
                                 '$ptpAmount',
                                 '" . mysqli_real_escape_string($dbconn, $remark) . "',
-                                '" . date('Y-m-d H:i:s') . "',
+                                '" . date('d-m-Y H:i:s') . "',
                                 '" . $_SERVER['REMOTE_ADDR'] . "'
                             )
                         ";
-
+                    
                     mysqli_query($dbconn, $insertQuery) or die("Error inserting follow-up at row $iCounterRow: " . mysqli_error($dbconn));
                     $followupId = mysqli_insert_id($dbconn);
 
