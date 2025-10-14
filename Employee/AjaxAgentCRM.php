@@ -127,7 +127,7 @@ if ($_POST['action'] == 'ListUser') {
 //    $filterstr = "SELECT * FROM `application`  " . $where . $whereEmp . " and isWithdraw=0 and isPaid=0 and isDelete='0'  and  iStatus='1' order by iAppId desc";
         $filterstr = "SELECT application.iAppId,application.bucket,application.isEmiPending,application.applicatipnNo,application.customerName,application.branch,application.state,application.customerAddress,application.customerCity, application.agencyId, "
             . "application.customerZipcode,application.loanAmount,application.EMIAmount,application.agencyName,application.FOSName,application.customerAddress,application.FosNumber, application.customerMobile,"
-            . "applicationfollowup.strEntryDate,applicationfollowup.mainDispoId,applicationfollowup.followupDate,applicationfollowup.PTPDate,applicationfollowup.PTP_Amount,applicationfollowup.remark "
+            . "applicationfollowup.strEntryDate,applicationfollowup.mainDispoId,applicationfollowup.followupDate,applicationfollowup.PTPDate,applicationfollowup.PTP_Amount,applicationfollowup.remark,applicationfollowup.subDispoId "
             . " FROM `application` LEFT JOIN "
             . "applicationfollowup ON application.iAppLogId=applicationfollowup.iAppLogId  " . $where . $whereEmp . " and isWithdraw=0 and isPaid=0 and isDelete='0'  and  iStatus='1'"  
             . $orderBy;
@@ -288,6 +288,9 @@ if ($_POST['action'] == 'ListUser') {
                                         if ($rowSetting['Lastdisposition'] == 1) {
                                             echo '<th class="pop_in_heading">Last <br /> Disposition</th>';
                                         }
+                                        if ($rowSetting['Lastdisposition'] == 1) {
+                                            echo '<th class="pop_in_heading">Last Sub<br /> Disposition</th>';
+                                        }
                                         if ($rowSetting['loanAmount'] == 1) {
                                             echo '<th class="pop_in_heading">PTP <br /> Amount</th>';
                                         }
@@ -328,6 +331,7 @@ if ($_POST['action'] == 'ListUser') {
                             <!--<th class="pop_in_heading">FOS Contact</th>-->
                             <th class="pop_in_heading sortable" onclick="sortTable('LastCallDate')">Last <br /> Call Date</th>
                             <th class="pop_in_heading">Last <br /> Disposition</th>
+                            <th class="pop_in_heading">Last Sub<br /> Disposition</th>
                             <th class="pop_in_heading">PTP <br /> Amount</th>
                             <th class="pop_in_heading">Follow-up / <br />PTP Date</th>
                             <th class="pop_in_heading">Follow-up /<br /> PTP Time</th>
@@ -543,6 +547,18 @@ if ($_POST['action'] == 'ListUser') {
                             </td>
                             <?php
                         }
+                        if ($rowSetting['Lastdisposition'] == 1) {
+                        ?>
+                            <td>
+                                <div class="form-group form-md-line-input ">
+                                    <?php
+                                    $filterSubDisPosition = mysqli_fetch_array(mysqli_query($dbconn, "Select dispoDesc from dispositionmaster where iDispoId='" . $rowfilter['subDispoId'] . "'"));
+                                    echo $filterSubDisPosition['dispoDesc'];
+                                    ?>
+                                </div>
+                            </td>
+                        <?php
+                        }
                          if ($rowSetting['loanAmount'] == 1) {
                             ?>
                             <td>
@@ -716,6 +732,14 @@ if ($_POST['action'] == 'ListUser') {
                                 ?> 
                             </div>
                         </td>
+                        <td>
+                                <div class="form-group form-md-line-input ">
+                                    <?php
+                                    $filterSubDisPosition = mysqli_fetch_array(mysqli_query($dbconn, "Select dispoDesc from dispositionmaster where iDispoId='" . $rowfilter['subDispoId'] . "'"));
+                                    echo $filterSubDisPosition['dispoDesc'];
+                                    ?>
+                                </div>
+                            </td>
                         <td>
                             <div class="form-group form-md-line-input ">
                                 <?php echo $rowfilter['PTP_Amount']; ?>

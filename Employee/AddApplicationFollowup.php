@@ -247,14 +247,14 @@ include('IsLogin.php');
                                                     </td>
                                                     <td>
                                                         <div class="form-group form-md-line-input "><?php
-                                                            $filterMainDispo = mysqli_fetch_array(mysqli_query($dbconn, "SELECT dispoDesc FROM `dispositionmaster` where masterDispoId='0' and iDispoId='" . $rowfilterLF['mainDispoId'] . "'"));
+                                                            $filterMainDispo = mysqli_fetch_array(mysqli_query($dbconn, "SELECT dispoDesc FROM `dispositionmaster` where iDispoId='" . $rowfilterLF['mainDispoId'] . "'"));
                                                             echo $filterMainDispo['dispoDesc'];
                                                             ?> 
                                                         </div>
                                                     </td>
                                                     <td>
                                                         <div class="form-group form-md-line-input "><?php
-                                                            $filterSubDispo = mysqli_fetch_array(mysqli_query($dbconn, "SELECT dispoDesc FROM `dispositionmaster` where masterDispoId!='0' and iDispoId='" . $rowfilterLF['subDispoId'] . "'"));
+                                                            $filterSubDispo = mysqli_fetch_array(mysqli_query($dbconn, "SELECT dispoDesc FROM `dispositionmaster` where iDispoId='" . $rowfilterLF['subDispoId'] . "'"));
                                                             echo $filterSubDispo['dispoDesc'];
                                                             ?> 
                                                         </div>
