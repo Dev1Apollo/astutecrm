@@ -133,7 +133,7 @@ if ($_POST['action'] == 'ListUser') {
                                 <td style='text-align:right;'>{$rowfilter['PTP_Amount']}</td>
                                 <td>{$date['0']}</td>
                                 <td>{$date['1']}</td>
-                                <td>{$rowfilter['Remark']}</td>
+                                <td>{$rowfilter['remark']}</td>
                                 <td>{$rowfilter['employeeName']}</td>
                               </tr>";
                         $i++;
