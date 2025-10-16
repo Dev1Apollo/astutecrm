@@ -2885,7 +2885,7 @@ switch ($action) {
                                 $errorString .= "Row $RowCounter: PTP Amount required when Disposition is 'Promise to Pay'.<br/>";
                                 continue;
                             }
-                            if (!is_numeric($ptpamount) || $ptpamount <= 0) {
+                            if (!is_numeric($ptpamount) || $ptpamount < 0) {
                                 $errorString .= "Row $RowCounter: PTP Amount must be a positive number when Disposition is 'Promise to Pay'.<br/>";
                                 continue;
                             }
